@@ -208,7 +208,7 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-`Authlib>=1.3.2` is required for Streamlit Google login in v1.4.
+`Authlib==1.3.2` is pinned for Streamlit Google login in v1.4.
 
 Create local secrets:
 
