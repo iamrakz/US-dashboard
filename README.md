@@ -7,15 +7,15 @@ stock screener.
 The current active version is:
 
 ```text
-us-rs-rating-dashboard-v1.3-ema50-risk-behavior.py
+us-rs-rating-dashboard-v1.4-google-login.py
 ```
 
-This US v1.3 app keeps the v1.2 risk-behavior workflow and changes performance NAV EMAs to 10 / 20 / 50.
+This US v1.4 app keeps the v1.3 EMA50 risk-behavior workflow and adds Google login for public deployments.
 
 ## Current Status
 
-- Active app: `us-rs-rating-dashboard-v1.3-ema50-risk-behavior.py`
-- Previous fallback app: `us-rs-rating-dashboard-v1.2-risk-behavior.py`
+- Active app: `us-rs-rating-dashboard-v1.4-google-login.py`
+- Previous fallback app: `us-rs-rating-dashboard-v1.3-ema50-risk-behavior.py`
 - Main logic module: `exposure_scorecard.py`
 - Portfolio risk module: `portfolio_risk.py`
 - Full operating manual: `USER_MANUAL.md`
@@ -217,6 +217,21 @@ cp .streamlit/secrets.toml.example .streamlit/secrets.toml
 Then edit `.streamlit/secrets.toml` with your own private Google Form and Sheet
 links.
 
+If you deploy the app publicly, add Google login secrets and allow only your own
+Google account:
+
+```toml
+require_google_login = true
+allowed_google_emails = ["you@example.com"]
+
+[auth]
+redirect_uri = "http://localhost:8505/oauth2callback"
+cookie_secret = "<strong-random-cookie-secret>"
+client_id = "<google-oauth-client-id>"
+client_secret = "<google-oauth-client-secret>"
+server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
+```
+
 If you want online pre-trading notes/history, also add Supabase secrets:
 
 ```toml
@@ -230,13 +245,13 @@ supabase_portfolio_risk_positions_table = "portfolio_risk_positions"
 Run the current app:
 
 ```bash
-python3 -m streamlit run us-rs-rating-dashboard-v1.3-ema50-risk-behavior.py
+python3 -m streamlit run us-rs-rating-dashboard-v1.4-google-login.py
 ```
 
 Run on a fixed local port:
 
 ```bash
-python3 -m streamlit run us-rs-rating-dashboard-v1.3-ema50-risk-behavior.py --server.port 8505
+python3 -m streamlit run us-rs-rating-dashboard-v1.4-google-login.py --server.port 8505
 ```
 
 Run tests:
@@ -247,6 +262,7 @@ python3 -m unittest tests/test_portfolio_risk.py
 python3 -m unittest tests/test_pretrade_drawdown.py
 python3 -m unittest tests/test_rs_screening_import.py
 python3 -m unittest tests/test_risk_behavior.py
+python3 -m unittest tests/test_google_auth.py
 ```
 
 ## Files For GitHub
@@ -264,11 +280,13 @@ Recommended files to include:
 - `us-rs-rating-dashboard-v1.1-performance-risk.py`
 - `us-rs-rating-dashboard-v1.2-risk-behavior.py`
 - `us-rs-rating-dashboard-v1.3-ema50-risk-behavior.py`
+- `us-rs-rating-dashboard-v1.4-google-login.py`
 - `exposure_scorecard.py`
 - `tests/test_exposure_scorecard.py`
 - `tests/test_portfolio_risk.py`
 - `tests/test_pretrade_drawdown.py`
 - `tests/test_risk_behavior.py`
+- `tests/test_google_auth.py`
 - `tests/test_rs_screening_import.py`
 - `templates/`
 
@@ -296,7 +314,7 @@ High-level steps:
 5. Set the entrypoint file to:
 
 ```text
-us-rs-rating-dashboard-v1.3-ema50-risk-behavior.py
+us-rs-rating-dashboard-v1.4-google-login.py
 ```
 
 6. In advanced settings, paste your Streamlit secrets:
@@ -304,11 +322,20 @@ us-rs-rating-dashboard-v1.3-ema50-risk-behavior.py
 ```toml
 portfolio_form_url = "https://docs.google.com/forms/d/e/<your-form-id>/viewform"
 portfolio_sheet_csv_url = "https://docs.google.com/spreadsheets/d/<your-sheet-id>/export?format=csv&gid=0"
+require_google_login = true
+allowed_google_emails = ["you@example.com"]
 supabase_url = "https://<your-project-ref>.supabase.co"
 supabase_key = "<your-supabase-key>"
 supabase_pretrade_table = "pretrade_snapshots"
 supabase_portfolio_risk_snapshot_table = "portfolio_risk_snapshots"
 supabase_portfolio_risk_positions_table = "portfolio_risk_positions"
+
+[auth]
+redirect_uri = "https://<your-app-subdomain>.streamlit.app/oauth2callback"
+cookie_secret = "<strong-random-cookie-secret>"
+client_id = "<google-oauth-client-id>"
+client_secret = "<google-oauth-client-secret>"
+server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
 ```
 
 7. Deploy the app and open the generated `streamlit.app` URL on desktop or
@@ -319,6 +346,7 @@ Official references:
 - [Streamlit Community Cloud deployment](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy)
 - [Streamlit file organization](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/file-organization)
 - [Streamlit secrets management](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management)
+- [Streamlit Google authentication tutorial](https://docs.streamlit.io/develop/tutorials/authentication/google)
 
 ## Mobile / Anywhere Workflow
 
@@ -335,7 +363,7 @@ This gives you the main routine anywhere without needing this Mac to stay on.
 
 ## Important Online Limitation
 
-The current v1.3 app reads portfolio data from Google Sheets, which is good for
+The current v1.4 app reads portfolio data from Google Sheets, which is good for
 multi-device use.
 
 If Supabase is not configured, the app saves pre-trading and portfolio risk
@@ -355,6 +383,26 @@ Longer-term cloud options are:
 
 For your current goal, Supabase is now the supported online database path for
 pre-trading notes/history and portfolio risk snapshots.
+
+## Google Login For Public Deployment
+
+Use this when the Streamlit app URL must be public but the dashboard content
+should stay private.
+
+1. In Google Cloud Console, create a Google Auth Platform web application.
+2. Add authorized redirect URIs for both environments you use:
+   - local: `http://localhost:8505/oauth2callback`
+   - deployed: `https://<your-app-subdomain>.streamlit.app/oauth2callback`
+3. Copy the Google client ID and client secret.
+4. Generate a strong random `cookie_secret`.
+5. Add the `[auth]` block and `allowed_google_emails` values shown above to local
+   `.streamlit/secrets.toml` and to Streamlit Cloud Secrets.
+6. Keep `require_google_login = true`.
+
+When login is configured, the app renders only the login screen until a Google
+account in `allowed_google_emails` signs in. If login is required but the auth
+secrets or allow-list are missing, the app blocks access instead of showing the
+dashboard.
 
 ## Supabase Setup For Pre-Trading And Portfolio Risk
 

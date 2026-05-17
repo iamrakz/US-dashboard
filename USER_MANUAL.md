@@ -3,7 +3,7 @@
 This manual explains how to use the current app:
 
 ```text
-us-rs-rating-dashboard-v1.3-ema50-risk-behavior.py
+us-rs-rating-dashboard-v1.4-google-login.py
 ```
 
 The app is designed for a pre-execution trading workflow. It helps you review
@@ -30,6 +30,29 @@ Use the app in this order:
 
 The app is built to support decision making before execution, not to automate
 buy/sell decisions.
+
+## Login On A Public Deployment
+
+If the app is deployed at a public Streamlit URL, enable Google login in
+Streamlit Secrets and allow only your own Google account. When login is enabled,
+the dashboard stays hidden until an authorized account signs in.
+
+Required secrets:
+
+```toml
+require_google_login = true
+allowed_google_emails = ["you@example.com"]
+
+[auth]
+redirect_uri = "https://<your-app-subdomain>.streamlit.app/oauth2callback"
+cookie_secret = "<strong-random-cookie-secret>"
+client_id = "<google-oauth-client-id>"
+client_secret = "<google-oauth-client-secret>"
+server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
+```
+
+For local testing on port `8505`, use
+`http://localhost:8505/oauth2callback` as the redirect URI instead.
 
 ## Tab 1: Equity Curve
 
